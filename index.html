@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Rigor Playground</title>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script src="src/rigor.js"></script>
+    <script>
+
+        function GodspeedYou() {
+            return function (props) {
+                return ["b", "Godspeed you, " + props.who + "!"];
+            }
+        }
+
+        function Stateful(init, R) {
+            const state = R.state({
+                count: init.count || 0,
+            });
+            let answer = 42;
+
+            function inc() {
+                state.count += 1;
+                answer += 1;
+                R.setTimeout(function () {
+                    R.log("Stateful.inc.setTimeout", state.count);
+                    state.count += 10;
+                }, 500)
+            }
+
+            return function (props, children) {
+                return [R.fragment,
+                ["button", { class: "btn", data: { bla: "blubb" }, disabled: false, onClick: inc },
+                    "Click Me! (", state.count, ",", answer, ")",
+                ]
+                ].concat(children);
+            };
+        }
+
+        const App = ["div", [Stateful, { count: 23 }, [GodspeedYou, { who: "World" }]]];
+
+        Rigor.DOM.mount(App, document.querySelector("#root"));
+
+        const markup = Rigor.Server.renderToStringSync(App);
+        console.log(markup);
+        const pre = document.createElement("pre");
+        pre.innerText = markup;
+        document.querySelector("#root").appendChild(pre);
+
+    </script>
+
+    <script src="harness.js"></script>
+    <script src="tests.js"></script>
+    <pre id="terminal" style="background: #eee; border: 1px solid #888; padding: 10px"></pre>
+    <script>
+
+        tests({
+            Rigor: Rigor,
+            GodspeedYou: GodspeedYou,
+            Stateful: Stateful,
+        }, createTestHarness(function (utils) {
+            const escapeHtml = utils.escapeHtml;
+            return {
+                flush: function flush(buffer) {
+                    const out = [];
+                    buffer.forEach(function (it) {
+                        const cols = [" "];
+                        for (let i = 1; i < it[0]; i += 1) {
+                            cols.push("  ");
+                        }
+                        const indent = cols.join("");
+                        if (it[3] instanceof Error) {
+                            out.push("\n" + indent + it[1]);
+                            console.error(indent, it[2], it[3]);
+                        } else {
+                            out.push("\n" + indent + it[1]);
+                            console.log(indent, it[2]);
+                        }
+                    });
+                    document.querySelector("#terminal").innerHTML += out.map(escapeHtml).join("");
+                },
+            };
+        }));
+
+    </script>
+
+
+</body>
+
+
+
+</html>
